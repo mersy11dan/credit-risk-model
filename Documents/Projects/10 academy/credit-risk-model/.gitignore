@@ -1,36 +1,77 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 *.egg-info/
 .eggs/
 dist/
 build/
 *.egg
+pip-wheel-metadata/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
 .venv/
 venv/
 env/
+ENV/
 
-# Jupyter
+# Jupyter / notebooks
 .ipynb_checkpoints/
+*.nbconvert.ipynb
 
-# Data & models
+# Data (keep directory structure)
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+*.csv
+*.parquet
+*.xlsx
+*.xls
+
+# MLflow
+mlruns/
+mlartifacts/
+mlflow.db
+
+# Model binaries & artifacts
 models/
+artifacts/
 *.pkl
 *.joblib
+*.h5
+*.onnx
+*.pt
+*.pth
 
-# IDE
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE & OS
 .vscode/
 .idea/
 *.swp
-
-# OS
+*.swo
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Environment
-.env
-.env.*
+# Logs
+*.log
+logs/
+
+# Docker (local overrides)
+docker-compose.override.yml
