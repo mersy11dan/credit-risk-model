@@ -55,28 +55,119 @@ credit-risk-model/
 └── requirements.txt
 ```
 
-## Business Understanding
+## Credit Scoring Business Understanding
 
-<!-- Document the credit risk problem, stakeholders, and success criteria -->
+Bati Bank's credit risk initiative sits at the intersection of commercial lending goals and regulatory accountability. Before any model is deployed, stakeholders need a shared understanding of *why* the bank builds probability-of-default (PD) models the way it does, *what* the available data can and cannot represent, and *how* modeling choices affect both performance and compliance.
 
 ### Context
 
-- Bati Bank needs to assess whether a loan applicant is likely to default before approval.
-- The model should align with regulatory expectations for transparent, auditable credit scoring.
+Bati Bank must estimate the likelihood that a borrower will fail to meet repayment obligations before extending credit. In practice, the bank often works with behavioral and transactional data rather than a clean, long-horizon default label. That gap between business need and available ground truth shapes every downstream modeling decision in this project.
 
-### Key questions
+---
 
-- What defines a **default** in the provided dataset?
-- Which features are legally and ethically acceptable for scoring?
-- What PD threshold maps to approve / review / reject decisions?
+### How Basel II influences the need for an interpretable and well-documented model
+
+Under the **Basel II** framework, banks that use internal ratings-based (IRB) approaches must estimate key risk parameters—**Probability of Default (PD)**, Loss Given Default (LGD), and Exposure at Default (EAD)—using rigorous, validated methodologies. Even where Bati Bank is not yet on a full IRB path, Basel II sets the industry standard for how credit risk models are governed.
+
+Basel II creates a strong preference for models that are:
+
+- **Transparent** — Regulators and internal audit must understand how inputs translate into risk estimates. Black-box outputs are difficult to defend during validation.
+- **Well documented** — Model development, data lineage, assumptions, limitations, and performance monitoring must be recorded in a way that supports periodic review and stress testing.
+- **Statistically sound and stable** — PD estimates feed directly into capital requirements and portfolio decisions; unexplained drift or opaque feature interactions increase regulatory and financial exposure.
+
+For Bati Bank, this means the PD model is not merely a prediction tool—it is part of the bank's **risk management infrastructure**. Interpretability and documentation are therefore design requirements, not optional enhancements.
+
+---
+
+### Why a proxy variable is necessary when there is no direct default label
+
+A **default** is typically defined by a formal event: sustained delinquency (e.g., 90+ days past due), charge-off, bankruptcy, or similar credit loss trigger observed over a defined performance window. In many real-world datasets—including those available for this challenge—the bank does not have a sufficiently long or complete history to label every customer with that outcome.
+
+When a direct default label is unavailable or immature, practitioners use a **proxy variable**: an observable behavior that correlates with future default but can be measured today. Common examples include:
+
+- Severe delinquency or repeated missed payments in the recent past
+- A "bad customer" flag derived from internal collections data
+- Deterioration in repayment behavior relative to contractual terms
+
+A proxy is necessary because the model still needs a **supervised learning target**. Without one, the bank cannot train a classifier to distinguish higher-risk from lower-risk applicants. The proxy acts as a practical stand-in for true default, allowing Bati Bank to learn patterns from historical behavior even when full default outcomes are incomplete or not yet realized.
+
+The critical caveat: **a proxy is an assumption, not a fact.** Its validity depends on how closely it tracks the business definition of default the bank intends to manage.
+
+---
+
+### Business risks introduced by proxy-based prediction
+
+Relying on a proxy target introduces risks that extend beyond standard model error:
+
+| Risk | Description | Potential impact |
+|------|-------------|------------------|
+| **Definition mismatch** | The proxy may capture short-term delinquency while the bank cares about long-term default. | Under- or over-estimation of true PD; misaligned lending decisions. |
+| **Selection bias** | Customers with observable proxy events may differ systematically from the full applicant population. | Model performs well on historical "bad" cases but poorly on new applicants. |
+| **Concept drift** | Economic conditions, product mix, or collections policy change how the proxy relates to actual default. | Silent degradation of model accuracy after deployment. |
+| **Fairness and reputational risk** | Proxies tied to past hardship may correlate with protected or vulnerable groups. | Regulatory scrutiny, customer harm, and brand damage. |
+| **Overconfidence in automation** | Strong offline metrics on a proxy can create false certainty at the point of credit decision. | Approvals granted to high-risk borrowers; unnecessary declines of creditworthy applicants. |
+
+Mitigation requires explicit documentation of the proxy definition, ongoing monitoring against realized outcomes as they mature, and human review for borderline cases—especially during early deployment.
+
+---
+
+### Trade-offs: Logistic Regression with WoE vs. Gradient Boosting in a regulated context
+
+Two modeling paths are commonly considered for credit scoring in regulated environments:
+
+#### Logistic Regression with Weight of Evidence (WoE)
+
+WoE transforms categorical and binned numeric features into a monotonic, linearly compatible scale. Paired with logistic regression, this approach is a long-standing industry standard.
+
+**Strengths**
+
+- Highly **interpretable** — Each feature's contribution to the score is transparent and easy to explain to credit officers and regulators.
+- **Stable and auditable** — Coefficient signs and magnitudes support straightforward validation and policy alignment (e.g., "higher debt burden increases PD").
+- **Regulatory familiarity** — Validators and risk teams are accustomed to reviewing scorecards built on this methodology.
+
+**Limitations**
+
+- Assumes **linear relationships** (after WoE transformation); may underfit complex interaction effects.
+- Feature engineering (binning, monotonicity constraints) is **labor-intensive** and requires domain expertise.
+
+#### Gradient Boosting (e.g., XGBoost, LightGBM)
+
+Gradient boosting often delivers **superior predictive performance** by capturing non-linear patterns and feature interactions automatically.
+
+**Strengths**
+
+- Higher **discrimination** (e.g., ROC-AUC, Gini) on complex datasets.
+- Less manual feature engineering when raw features are informative.
+
+**Limitations**
+
+- **Lower inherent interpretability** — Explaining individual decisions requires post-hoc tools (SHAP, LIME), which add complexity to validation.
+- Greater risk of **overfitting** and **unstable feature importance** if not carefully tuned and monitored.
+- Harder to align with **policy constraints** (e.g., monotonicity requirements on certain variables).
+
+#### Recommendation for Bati Bank
+
+| Dimension | Logistic Regression + WoE | Gradient Boosting |
+|-----------|---------------------------|-------------------|
+| Regulatory defensibility | Strong | Moderate (requires extra explainability work) |
+| Predictive power | Moderate | Strong |
+| Development effort | Higher (manual binning/WoE) | Lower (automated splits) |
+| Ongoing monitoring | Straightforward | Requires robust drift and explainability monitoring |
+| Best suited when | Interpretability and auditability are paramount | Performance gains justify added governance overhead |
+
+For a regulated financial institution like Bati Bank, a pragmatic approach is to **benchmark both**: use logistic regression with WoE as the interpretable baseline and challenger models (e.g., gradient boosting) to quantify the performance uplift. The final production choice should weigh predictive gain against the bank's appetite for validation effort, explainability requirements, and the reliability of the proxy target.
+
+---
 
 ### Success metrics
 
 | Metric | Target / Notes |
 |--------|----------------|
-| ROC-AUC | <!-- fill after baseline --> |
-| PR-AUC  | <!-- important for imbalanced data --> |
-| Business KPI | <!-- e.g. approval rate at fixed default rate --> |
+| ROC-AUC | Primary discrimination metric; compare baseline vs. challenger models |
+| PR-AUC | Important when defaults (or proxy events) are rare |
+| Gini coefficient | Common credit risk reporting metric (2 × AUC − 1) |
+| Population Stability Index (PSI) | Monitor score distribution drift over time |
+| Business KPI | Approval rate, loss rate, or margin at a fixed PD cutoff |
 
 ## Pipeline
 
