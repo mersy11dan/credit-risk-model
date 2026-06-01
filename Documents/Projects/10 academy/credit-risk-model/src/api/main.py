@@ -1,67 +1,74 @@
-"""FastAPI service for Bati Bank probability-of-default scoring."""
+"""FastAPI inference service for the Bati Bank credit risk model."""
 
-import pickle
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 
+from src.api.model_loader import ModelStore
 from src.api.pydantic_models import (
-    CreditApplication,
+    CustomerFeatures,
     PredictionResponse,
     risk_category_from_probability,
 )
-from src.config import DEFAULT_MODEL_PATH
 
-_model = None
-
-
-def load_model(model_path: Path = DEFAULT_MODEL_PATH):
-    """Load model from disk; raises if artifact is missing."""
-    if not model_path.exists():
-        raise FileNotFoundError(f"Model not found at {model_path}")
-    with open(model_path, "rb") as f:
-        return pickle.load(f)
+model_store = ModelStore()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load model once at startup."""
-    global _model
+    """Load the best available model once at startup."""
     try:
-        _model = load_model()
+        model_store.load()
     except FileNotFoundError:
-        _model = None
+        model_store.model = None
+        model_store.source = None
     yield
 
 
 app = FastAPI(
     title="Bati Bank Credit Risk API",
-    description="Probability-of-default scoring for loan applications",
-    version="0.1.0",
+    description="Inference service for proxy high-risk probability scoring",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
 
 def get_model():
-    if _model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded. Train and deploy first.")
-    return _model
+    if not model_store.is_loaded:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Train a model or configure MODEL_URI / MLflow registry.",
+        )
+    return model_store.model
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_loaded": _model is not None}
+    """Service health check."""
+    return {
+        "status": "ok",
+        "model_loaded": model_store.is_loaded,
+        "model_source": model_store.source,
+    }
 
 
 @app.post("/predict", response_model=PredictionResponse)
-def predict(application: CreditApplication):
-    """Score a single credit application."""
+def predict(features: CustomerFeatures):
+    """Score a customer and return high-risk probability."""
     model = get_model()
-    features = pd.DataFrame([application.model_dump()])
-    probability = float(model.predict_proba(features)[0][1])
+    feature_row = features.to_feature_row()
+    input_df = pd.DataFrame([feature_row])
+
+    try:
+        probability = float(model.predict_proba(input_df)[0][1])
+    except Exception as exc:  # noqa: BLE001 - return clean API error for feature mismatch
+        raise HTTPException(
+            status_code=422,
+            detail=f"Model prediction failed: {exc}",
+        ) from exc
+
     return PredictionResponse(
-        probability_of_default=probability,
+        risk_probability=probability,
         risk_category=risk_category_from_probability(probability),
     )
