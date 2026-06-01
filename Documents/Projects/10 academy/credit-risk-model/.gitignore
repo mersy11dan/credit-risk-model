@@ -44,7 +44,8 @@ mlartifacts/
 mlflow.db
 
 # Model binaries & artifacts
-models/
+models/*
+!models/.gitkeep
 artifacts/
 *.pkl
 *.joblib

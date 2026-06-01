@@ -1,10 +1,31 @@
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bati-bank-credit-risk-api
     ports:
       - "8000:8000"
     volumes:
+      # Mount trained model and MLflow artifacts from the host
       - ./models:/app/models
       - ./mlruns:/app/mlruns
     environment:
-      - PYTHONUNBUFFERED=1
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /app
+      # Optional: override model source (registry URI or runs:/...)
+      # MODEL_URI: models:/bati-bank-credit-risk-model/Production
+      # MLFLOW_MODEL_STAGE: Production
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
