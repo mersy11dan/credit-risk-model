@@ -169,6 +169,70 @@ For a regulated financial institution like Bati Bank, a pragmatic approach is to
 | Population Stability Index (PSI) | Monitor score distribution drift over time |
 | Business KPI | Approval rate, loss rate, or margin at a fixed PD cutoff |
 
+## Proxy Target Variable (RFM Clustering)
+
+Because the Xente transaction dataset does not include a direct, long-horizon **default label** for every customer, this project uses a **proxy target** to enable supervised modeling. The proxy is derived from customer engagement patterns and is implemented in `src/data_processing.py`.
+
+> **Important:** The proxy target `is_high_risk` is a **modeling assumption**, not ground truth. It does not represent an observed default event. Any model trained on this label estimates *proxy risk* (low engagement), not verified credit loss. Results must be interpreted and validated accordingly before use in lending decisions.
+
+### Why a proxy is needed
+
+Credit scoring models typically learn from a binary outcome: did the borrower default within a defined performance window? In this challenge, Bati Bank has rich **transaction-level behavioral data** but no complete default history tied to each `CustomerId`.
+
+Without a target variable, we cannot train a classifier to separate higher-risk from lower-risk customers. A proxy fills that gap by using **observable behavior today** as a practical stand-in for adverse credit outcomes we cannot yet measure directly.
+
+This approach is common in early-stage or data-limited credit programs, but it requires explicit documentation, conservative interpretation, and ongoing validation as true default outcomes mature.
+
+### How the RFM clustering approach works
+
+The proxy pipeline follows a standard **Recency–Frequency–Monetary (RFM)** framework, widely used in customer analytics and adaptable to credit risk when direct labels are unavailable.
+
+For each `CustomerId`, we compute:
+
+| Metric | Definition | Business intuition |
+|--------|------------|-------------------|
+| **Recency** | Days since the customer's most recent transaction, measured from a fixed snapshot date | Longer inactivity may signal disengagement or financial stress |
+| **Frequency** | Total number of transactions | Fewer interactions may indicate weaker platform relationship |
+| **Monetary** | Sum of transaction values (`Value`) | Lower spend may reflect reduced capacity or usage |
+
+**Pipeline steps:**
+
+1. **Compute RFM metrics** per customer using a consistent snapshot date (default: day after the latest transaction in the dataset).
+2. **Standardize** recency, frequency, and monetary values with `StandardScaler` so no single metric dominates clustering.
+3. **Apply K-Means clustering** with **3 clusters** and a fixed `random_state=42` for reproducibility.
+4. **Assign a binary label** `is_high_risk` based on cluster engagement profiles (see below).
+5. **Merge** `is_high_risk` back into the customer-level processed dataset and save to `data/processed/` for modeling.
+
+```python
+from src.data_processing import load_transactions, build_modeling_dataset_with_proxy_target
+
+tx = load_transactions(parse_dates=True)
+output_path = build_modeling_dataset_with_proxy_target(tx)
+```
+
+### How the high-risk cluster is selected
+
+After clustering, each group is summarized by its average recency, frequency, and monetary values. The **least engaged cluster** is labeled high risk using a transparent ranking rule:
+
+- **Higher recency** (more days since last transaction) → higher risk
+- **Lower frequency** (fewer transactions) → higher risk
+- **Lower monetary** (less total spend) → higher risk
+
+Each cluster is ranked on these three dimensions. The cluster with the **highest combined risk score** is designated the high-risk segment, and its customers receive `is_high_risk = 1`. All other customers receive `is_high_risk = 0`.
+
+This rule reflects a reasonable business hypothesis: customers who are inactive, transact infrequently, and spend less may be more likely to experience financial difficulty or default if granted credit. **That hypothesis must be tested**—it is not guaranteed to hold in real default data.
+
+### Limitations and recommended validation
+
+| Consideration | Implication |
+|---------------|-------------|
+| **Not actual default** | Model performance measures proxy separation, not true loss prediction |
+| **Segment definition** | The "least engaged" cluster is a relative label within this dataset, not an industry standard |
+| **Snapshot sensitivity** | Recency depends on the chosen snapshot date; results may shift if the observation window changes |
+| **Business alignment** | Bati Bank should confirm with risk stakeholders whether low engagement is an acceptable proxy for credit risk in this context |
+
+**Recommended next steps:** Compare `is_high_risk` against alternative proxies (e.g., `FraudResult`), monitor cluster stability over time, and re-label or retrain when verified default outcomes become available.
+
 ## Pipeline
 
 <!-- High-level flow from raw data to deployed model -->
