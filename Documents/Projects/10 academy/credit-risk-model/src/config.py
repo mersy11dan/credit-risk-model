@@ -9,9 +9,23 @@ DATA_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 MODELS_DIR = PROJECT_ROOT / "models"
 MLFLOW_TRACKING_URI = PROJECT_ROOT / "mlruns"
 
-# Data columns (adjust after EDA)
+# Transaction dataset (Xente)
+TRANSACTION_DATA_PATH = DATA_RAW_DIR / "data.csv"
+VARIABLE_DEFINITIONS_PATH = DATA_RAW_DIR / "Xente_Variable_Definitions.csv"
+TRANSACTION_DATETIME_COLUMN = "TransactionStartTime"
+
+# Entity columns
+CUSTOMER_ID_COLUMN = "CustomerId"
+ACCOUNT_ID_COLUMN = "AccountId"
+ID_COLUMNS = [CUSTOMER_ID_COLUMN, ACCOUNT_ID_COLUMN, "TransactionId"]
+
+# Proxy / risk columns (adjust after EDA)
 TARGET_COLUMN = "default"
-ID_COLUMNS = ["customer_id"]
+PROXY_TARGET_COLUMN = "FraudResult"
+AMOUNT_COLUMN = "Amount"
+VALUE_COLUMN = "Value"
+
+# Feature lists (populate after EDA)
 CATEGORICAL_COLUMNS: list[str] = []
 NUMERIC_COLUMNS: list[str] = []
 

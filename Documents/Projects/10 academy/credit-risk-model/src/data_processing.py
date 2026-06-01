@@ -4,12 +4,77 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.config import DATA_PROCESSED_DIR, TARGET_COLUMN
+from src.config import (
+    DATA_PROCESSED_DIR,
+    TARGET_COLUMN,
+    TRANSACTION_DATA_PATH,
+    TRANSACTION_DATETIME_COLUMN,
+)
 
 
-def load_raw_data(path: str | Path) -> pd.DataFrame:
-    """Load raw credit application data from CSV."""
-    return pd.read_csv(path)
+def load_raw_data(
+    path: str | Path,
+    *,
+    parse_dates: bool = False,
+    nrows: int | None = None,
+) -> pd.DataFrame:
+    """Load a CSV dataset with basic path validation.
+
+    Parameters
+    ----------
+    path:
+        Path to the CSV file.
+    parse_dates:
+        When True, attempt to parse ``TRANSACTION_DATETIME_COLUMN`` if present.
+    nrows:
+        Optional row limit for quick sampling during development.
+
+    Returns
+    -------
+    pd.DataFrame
+        Loaded dataframe.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
+    ValueError
+        If the file is empty after loading.
+    """
+    file_path = Path(path)
+    if not file_path.is_file():
+        raise FileNotFoundError(f"Data file not found: {file_path}")
+
+    df = pd.read_csv(file_path, low_memory=False, nrows=nrows)
+    if df.empty:
+        raise ValueError(f"Data file is empty: {file_path}")
+
+    if parse_dates and TRANSACTION_DATETIME_COLUMN in df.columns:
+        df[TRANSACTION_DATETIME_COLUMN] = pd.to_datetime(
+            df[TRANSACTION_DATETIME_COLUMN],
+            errors="coerce",
+            utc=True,
+        )
+
+    return df
+
+
+def load_transactions(
+    path: str | Path | None = None,
+    *,
+    parse_dates: bool = True,
+    nrows: int | None = None,
+) -> pd.DataFrame:
+    """Load the Bati Bank / Xente transaction dataset safely.
+
+    Defaults to ``data/raw/data.csv`` and parses transaction timestamps when
+    ``TransactionStartTime`` is available.
+    """
+    return load_raw_data(
+        path or TRANSACTION_DATA_PATH,
+        parse_dates=parse_dates,
+        nrows=nrows,
+    )
 
 
 def validate_dataframe(df: pd.DataFrame, require_target: bool = True) -> pd.DataFrame:

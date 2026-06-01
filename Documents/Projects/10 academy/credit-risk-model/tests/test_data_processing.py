@@ -3,7 +3,14 @@
 import pandas as pd
 import pytest
 
-from src.data_processing import clean_data, preprocess, validate_dataframe
+from src.config import TRANSACTION_DATA_PATH
+from src.data_processing import (
+    clean_data,
+    load_raw_data,
+    load_transactions,
+    preprocess,
+    validate_dataframe,
+)
 
 
 @pytest.fixture
@@ -15,6 +22,27 @@ def sample_df():
             "default": [0, 1, 0],
         }
     )
+
+
+def test_load_raw_data_raises_for_missing_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_raw_data(tmp_path / "missing.csv")
+
+
+def test_load_raw_data_raises_for_empty_file(tmp_path):
+    empty_file = tmp_path / "empty.csv"
+    empty_file.write_text("col\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="empty"):
+        load_raw_data(empty_file)
+
+
+def test_load_transactions_parses_datetime():
+    if not TRANSACTION_DATA_PATH.exists():
+        pytest.skip("Transaction dataset not available")
+
+    df = load_transactions(nrows=100)
+    assert "TransactionStartTime" in df.columns
+    assert pd.api.types.is_datetime64_any_dtype(df["TransactionStartTime"])
 
 
 def test_validate_dataframe_requires_target():
