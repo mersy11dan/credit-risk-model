@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.cluster import KMeans
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
@@ -22,6 +23,7 @@ from src.config import (
     TARGET_COLUMN,
     TRANSACTION_DATA_PATH,
     TRANSACTION_DATETIME_COLUMN,
+    VALUE_COLUMN,
 )
 
 
@@ -418,3 +420,164 @@ def make_model_ready_dataset(
     X = pd.DataFrame(X_arr, columns=feature_names, index=features_df.index)
 
     return X, y, pipeline
+
+
+# -----------------------------
+# Proxy target (RFM + clustering)
+# -----------------------------
+
+
+def compute_rfm_metrics(
+    transactions: pd.DataFrame,
+    *,
+    customer_id_col: str = CUSTOMER_ID_COLUMN,
+    datetime_col: str = TRANSACTION_DATETIME_COLUMN,
+    monetary_col: str = VALUE_COLUMN,
+    snapshot_date: pd.Timestamp | None = None,
+) -> pd.DataFrame:
+    """Compute RFM (Recency, Frequency, Monetary) metrics per customer.
+
+    Recency is computed as the number of days between a consistent snapshot date and the
+    customer's most recent transaction time.
+
+    Parameters
+    ----------
+    transactions:
+        Transaction-level dataframe.
+    snapshot_date:
+        If None, uses ``max(transaction_time) + 1 day`` as a consistent snapshot.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: CustomerId, recency_days, frequency, monetary
+    """
+    if customer_id_col not in transactions.columns:
+        raise ValueError(f"Missing customer id column: {customer_id_col}")
+    if datetime_col not in transactions.columns:
+        raise ValueError(f"Missing datetime column: {datetime_col}")
+    if monetary_col not in transactions.columns:
+        raise ValueError(f"Missing monetary column: {monetary_col}")
+
+    tx = transactions[[customer_id_col, datetime_col, monetary_col]].copy()
+    tx = _coerce_transaction_datetime(tx)
+
+    if tx[datetime_col].isna().all():
+        raise ValueError(
+            f"All values in {datetime_col} are missing/invalid; cannot compute recency."
+        )
+
+    snap = snapshot_date
+    if snap is None:
+        snap = tx[datetime_col].max() + pd.Timedelta(days=1)
+    snap = pd.to_datetime(snap, utc=True)
+
+    grouped = tx.groupby(customer_id_col, dropna=False)
+    last_txn = grouped[datetime_col].max()
+    frequency = grouped.size().astype(int)
+    monetary = grouped[monetary_col].sum().astype(float)
+
+    recency_days = (snap - last_txn).dt.total_seconds() / 86400.0
+
+    rfm = pd.DataFrame(
+        {
+            customer_id_col: last_txn.index,
+            "recency_days": recency_days.values,
+            "frequency": frequency.values,
+            "monetary": monetary.values,
+        }
+    )
+    return rfm.reset_index(drop=True)
+
+
+def rfm_kmeans_proxy_target(
+    transactions: pd.DataFrame,
+    *,
+    customer_id_col: str = CUSTOMER_ID_COLUMN,
+    datetime_col: str = TRANSACTION_DATETIME_COLUMN,
+    monetary_col: str = VALUE_COLUMN,
+    snapshot_date: pd.Timestamp | None = None,
+    n_clusters: int = 3,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    """Create a proxy target using RFM + KMeans clustering.
+
+    Steps
+    -----
+    1. Compute RFM metrics per customer
+    2. Standardize RFM features
+    3. Fit KMeans with ``n_clusters=3`` and fixed ``random_state``
+    4. Identify the *least engaged* cluster as high risk:
+       - highest recency (least recent)
+       - lowest frequency
+       - lowest monetary
+    5. Output per-customer labels including binary ``is_high_risk``
+    """
+    rfm = compute_rfm_metrics(
+        transactions,
+        customer_id_col=customer_id_col,
+        datetime_col=datetime_col,
+        monetary_col=monetary_col,
+        snapshot_date=snapshot_date,
+    )
+
+    features = rfm[["recency_days", "frequency", "monetary"]].copy()
+    scaler = StandardScaler()
+    scaled = scaler.fit_transform(features)
+
+    km = KMeans(n_clusters=n_clusters, random_state=random_state, n_init="auto")
+    rfm["rfm_cluster"] = km.fit_predict(scaled).astype(int)
+
+    cluster_means = (
+        rfm.groupby("rfm_cluster")[["recency_days", "frequency", "monetary"]].mean().reset_index()
+    )
+
+    # Rank clusters: higher recency => higher risk; lower frequency/monetary => higher risk.
+    cluster_means["rank_recency"] = cluster_means["recency_days"].rank(
+        ascending=False, method="min"
+    )
+    cluster_means["rank_frequency"] = cluster_means["frequency"].rank(ascending=True, method="min")
+    cluster_means["rank_monetary"] = cluster_means["monetary"].rank(ascending=True, method="min")
+    cluster_means["risk_score"] = (
+        cluster_means["rank_recency"]
+        + cluster_means["rank_frequency"]
+        + cluster_means["rank_monetary"]
+    )
+
+    high_risk_cluster = int(
+        cluster_means.sort_values("risk_score", ascending=False).iloc[0]["rfm_cluster"]
+    )
+
+    rfm["is_high_risk"] = (rfm["rfm_cluster"] == high_risk_cluster).astype(int)
+    return rfm[
+        [customer_id_col, "recency_days", "frequency", "monetary", "rfm_cluster", "is_high_risk"]
+    ]
+
+
+def build_modeling_dataset_with_proxy_target(
+    transactions: pd.DataFrame,
+    *,
+    categorical_cols: list[str] | None = None,
+    snapshot_date: pd.Timestamp | None = None,
+    output_filename: str = "modeling_dataset.csv",
+) -> Path:
+    """Build and save a customer-level modeling dataset with an RFM proxy target.
+
+    - Builds customer-level features (aggregates + time features + categorical modes)
+    - Computes RFM proxy target and merges it back
+    - Saves the result under ``data/processed/`` for modeling
+    """
+    customer_df = build_customer_dataset(
+        transactions,
+        categorical_cols=categorical_cols,
+        label_col=None,  # avoid mixing proxy target columns; we attach our own
+    )
+
+    proxy = rfm_kmeans_proxy_target(transactions, snapshot_date=snapshot_date)
+    processed = customer_df.merge(
+        proxy[[CUSTOMER_ID_COLUMN, "is_high_risk"]],
+        on=CUSTOMER_ID_COLUMN,
+        how="left",
+    )
+
+    return save_processed(processed, filename=output_filename)
