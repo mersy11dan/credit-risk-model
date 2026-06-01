@@ -544,8 +544,9 @@ def rfm_kmeans_proxy_target(
         + cluster_means["rank_monetary"]
     )
 
+    # Lowest combined rank score indicates least engagement (highest proxy risk).
     high_risk_cluster = int(
-        cluster_means.sort_values("risk_score", ascending=False).iloc[0]["rfm_cluster"]
+        cluster_means.sort_values("risk_score", ascending=True).iloc[0]["rfm_cluster"]
     )
 
     rfm["is_high_risk"] = (rfm["rfm_cluster"] == high_risk_cluster).astype(int)
