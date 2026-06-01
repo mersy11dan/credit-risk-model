@@ -21,9 +21,13 @@ ID_COLUMNS = [CUSTOMER_ID_COLUMN, ACCOUNT_ID_COLUMN, "TransactionId"]
 
 # Proxy / risk columns (adjust after EDA)
 TARGET_COLUMN = "default"
+HIGH_RISK_TARGET_COLUMN = "is_high_risk"
 PROXY_TARGET_COLUMN = "FraudResult"
 AMOUNT_COLUMN = "Amount"
 VALUE_COLUMN = "Value"
+
+# Processed modeling dataset
+DEFAULT_MODELING_DATASET = DATA_PROCESSED_DIR / "modeling_dataset.csv"
 
 # Feature lists (populate after EDA)
 CATEGORICAL_COLUMNS: list[str] = []
@@ -33,6 +37,7 @@ NUMERIC_COLUMNS: list[str] = []
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
 MLFLOW_EXPERIMENT_NAME = "bati-bank-credit-risk"
+MLFLOW_REGISTERED_MODEL_NAME = "bati-bank-credit-risk-model"
 
 # API
 DEFAULT_MODEL_PATH = MODELS_DIR / "model.pkl"
