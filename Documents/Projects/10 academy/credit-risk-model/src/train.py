@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import pickle
 from pathlib import Path
 from typing import Any
@@ -36,6 +35,7 @@ from src.config import (
     TEST_SIZE,
 )
 from src.data_processing import build_preprocessing_pipeline
+from src.results import save_model_comparison_results
 
 
 def get_mlflow_tracking_uri() -> str:
@@ -325,14 +325,7 @@ def train_all_models(
     with open(output_path, "wb") as f:
         pickle.dump(best_model, f)
 
-    metadata_path = MODELS_DIR / "best_model.json"
-    metadata_path.write_text(
-        json.dumps(
-            {"model_name": best_model_name, "metrics": all_metrics[best_model_name]},
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    save_model_comparison_results(all_metrics, best_model_name, output_dir=output_path.parent)
 
     if register_model and best_model_uri:
         with mlflow.start_run(run_name="best_model_registration"):

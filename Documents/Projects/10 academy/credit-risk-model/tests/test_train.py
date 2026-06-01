@@ -86,4 +86,6 @@ def test_train_runs_two_models(sample_modeling_dataset, tmp_path, monkeypatch):
 
     assert model is not None
     assert (models_dir / "model.pkl").exists()
-    assert (models_dir / "best_model.json").exists()
+    assert (models_dir / "best_model_summary.json").exists()
+    assert (models_dir / "model_comparison.csv").exists()
+    assert (models_dir / "model_comparison.md").exists()
