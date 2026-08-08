@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interim Report - Bati Bank Credit Risk Model</title>
+  <style>
+    @page { margin: 2cm; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      line-height: 1.5;
+      color: #222;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 { font-size: 22pt; border-bottom: 2px solid #1a5276; padding-bottom: 8px; }
+    h2 { font-size: 14pt; color: #1a5276; margin-top: 28px; }
+    h3 { font-size: 12pt; color: #333; }
+    p, li { font-size: 11pt; text-align: justify; }
+    ul { margin-left: 20px; }
+    .figure { text-align: center; margin: 20px 0; page-break-inside: avoid; }
+    .figure img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+    .figure-caption { font-size: 10pt; color: #555; font-style: italic; margin-top: 6px; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 10pt; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #eaf2f8; }
+    pre { background: #f4f4f4; padding: 12px; font-size: 9pt; overflow-x: auto; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #ccc; font-size: 10pt; }
+    @media print {
+      body { max-width: none; }
+      h2 { page-break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Interim Report</h1>
+<p><strong>Bati Bank Credit Risk Probability Model</strong></p>
+
+<p>
+  I am working on the <strong>Bati Bank Credit Risk Model Challenge</strong>, focusing on transaction-level
+  behavioral data from the Xente platform to estimate customer credit risk when a direct default label is
+  unavailable. The main goal is to build analytical and software engineering competencies through
+  reproducible data pipelines, proxy target engineering, machine learning with MLflow, API deployment,
+  Docker, and continuous integration.
+</p>
+<p>
+  This interim report summarizes progress made so far, methods applied, tools used, challenges encountered,
+  and next steps planned for the final submission.
+</p>
+
+<h2>Task 1: Git &amp; Environment Setup</h2>
+<h3>Objective</h3>
+<p>Establish a robust, reproducible, and collaborative environment using GitHub, version control, and CI/CD.</p>
+<h3>Implementation Steps</h3>
+<ul>
+  <li>Created GitHub repository <code>credit-risk-model</code> with correct project root (not nested paths).</li>
+  <li>Python 3.11+ virtual environment and <code>requirements.txt</code>.</li>
+  <li><code>.gitignore</code> for data, models, MLflow, and environment files.</li>
+  <li>Project structure: <code>src/</code>, <code>tests/</code>, <code>notebooks/</code>, Docker, CI workflow.</li>
+</ul>
+<div class="figure">
+  <img src="figures/06_project_pipeline.png" alt="Project pipeline" />
+  <div class="figure-caption">Figure 1: Bati Bank credit risk pipeline (interim)</div>
+</div>
+<h3>Challenges Faced</h3>
+<ul>
+  <li>Git initialized at user home directory caused wrong GitHub folder structure — fixed by repo in <code>credit-risk-model/</code> only.</li>
+</ul>
+<h3>Outcome</h3>
+<p>Environment is complete, reproducible, and integrated with CI on push to <code>main</code>.</p>
+
+<h2>Task 2: Data Profiling, Cleaning &amp; EDA</h2>
+<h3>Objective</h3>
+<p>Profile and explore the Xente transaction dataset for data quality and risk patterns.</p>
+<h3>Implementation Steps</h3>
+<ul>
+  <li>95,662 transactions, 3,742 customers; no missing values in raw columns.</li>
+  <li><code>notebooks/eda.ipynb</code> and <code>src/eda.py</code> helpers.</li>
+  <li>Heavy-tailed monetary features; ~0.2% fraud proxy rate.</li>
+</ul>
+<div class="figure">
+  <img src="figures/01_transaction_value_distribution.png" alt="Value distribution" />
+  <div class="figure-caption">Figure 2: Transaction value distribution</div>
+</div>
+<div class="figure">
+  <img src="figures/02_product_category_volume.png" alt="Product volume" />
+  <div class="figure-caption">Figure 3: Volume by product category</div>
+</div>
+<div class="figure">
+  <img src="figures/03_proxy_rate_by_product.png" alt="Proxy rate" />
+  <div class="figure-caption">Figure 4: Fraud flag rate by product (behavioral proxy)</div>
+</div>
+<div class="figure">
+  <img src="figures/04_transactions_by_channel.png" alt="Channel volume" />
+  <div class="figure-caption">Figure 5: Transactions by channel</div>
+</div>
+<h3>Outcome</h3>
+<p>EDA complete; dataset ready for customer-level feature engineering.</p>
+
+<h2>Task 3: Feature Engineering &amp; Proxy Target (RFM)</h2>
+<h3>Objective</h3>
+<p>Build customer-level features and binary proxy target <code>is_high_risk</code>.</p>
+<h3>Implementation Steps</h3>
+<ul>
+  <li>Aggregates, time features, categorical modes in <code>src/data_processing.py</code>.</li>
+  <li>RFM + K-Means (k=3) → least engaged cluster = high risk.</li>
+  <li>WoE/IV analysis module in <code>src/woe_iv.py</code>.</li>
+</ul>
+<div class="figure">
+  <img src="figures/05_rfm_proxy_clusters.png" alt="RFM clusters" />
+  <div class="figure-caption">Figure 6: RFM customer segments (proxy target)</div>
+</div>
+<h3>Outcome</h3>
+<p>Proxy pipeline tested and documented; modeling dataset exportable to <code>data/processed/</code>.</p>
+
+<h2>Task 4: Model Training &amp; MLflow</h2>
+<h3>Objective</h3>
+<p>Train and compare classifiers with hyperparameter tuning and experiment tracking.</p>
+<ul>
+  <li>Logistic Regression, Decision Tree, Random Forest, Gradient Boosting.</li>
+  <li>RandomizedSearchCV; metrics: accuracy, precision, recall, F1, ROC-AUC.</li>
+  <li>Outputs: <code>model_comparison.csv</code>, <code>best_model_summary.json</code>.</li>
+</ul>
+
+<h2>Task 5: FastAPI &amp; Docker</h2>
+<ul>
+  <li><code>/health</code> and <code>/predict</code> with Pydantic validation.</li>
+  <li>Returns <code>risk_probability</code> and risk category.</li>
+  <li>Dockerfile + docker-compose with health checks.</li>
+</ul>
+
+<h2>Task 6: Testing &amp; CI</h2>
+<ul>
+  <li>42+ pytest tests; Ruff lint/format on push to <code>main</code>.</li>
+</ul>
+
+<h2>Next Steps</h2>
+<ul>
+  <li>Finalize model training and comparison for final report.</li>
+  <li>Interpretability analysis (SHAP / coefficients).</li>
+  <li>Peer-test API and Docker; prepare final PDF for Bati Bank.</li>
+</ul>
+
+<h2>Conclusion</h2>
+<p>
+  The project has a solid foundation: EDA, proxy target, ML pipeline, API, Docker, and CI/CD.
+  Ready for final model selection, validation, and stakeholder reporting.
+</p>
+
+<h2>Working Hours</h2>
+<table>
+  <tr><th>Task</th><th>Description</th><th>Hours</th></tr>
+  <tr><td>Task 1</td><td>Git &amp; Environment Setup</td><td>8</td></tr>
+  <tr><td>Task 2</td><td>Data Profiling &amp; EDA</td><td>14</td></tr>
+  <tr><td>Task 3</td><td>Feature Engineering &amp; RFM Proxy</td><td>12</td></tr>
+  <tr><td>Task 4</td><td>Model Training &amp; MLflow</td><td>10</td></tr>
+  <tr><td>Task 5</td><td>FastAPI &amp; Docker</td><td>8</td></tr>
+  <tr><td>Task 6</td><td>Testing &amp; CI/CD</td><td>6</td></tr>
+  <tr><th colspan="2">Total (interim)</th><th>58</th></tr>
+</table>
+
+<div class="footer">
+  <p><strong>Prepared by:</strong> Mihret Daniel</p>
+  <p><strong>Date:</strong> June 1, 2026</p>
+  <p><strong>Program:</strong> 10 Academy – Bati Bank Credit Risk Model Challenge</p>
+</div>
+
+</body>
+</html>

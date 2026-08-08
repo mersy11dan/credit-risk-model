@@ -1,0 +1,34 @@
+[
+  {
+    "feature": "num__txn_month",
+    "importance": 0.5315734470651932
+  },
+  {
+    "feature": "num__txn_year",
+    "importance": 0.3829355347615261
+  },
+  {
+    "feature": "num__txn_day",
+    "importance": 0.07694411653486374
+  },
+  {
+    "feature": "num__transaction_count",
+    "importance": 0.007249475513271724
+  },
+  {
+    "feature": "num__std_transaction_amount",
+    "importance": 0.0006771507168582214
+  },
+  {
+    "feature": "num__total_transaction_amount",
+    "importance": 0.0003059845853010565
+  },
+  {
+    "feature": "num__avg_transaction_amount",
+    "importance": 0.00024522666097076
+  },
+  {
+    "feature": "num__txn_hour",
+    "importance": 6.90641620152836e-05
+  }
+]

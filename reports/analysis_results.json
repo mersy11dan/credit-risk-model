@@ -1,0 +1,355 @@
+{
+  "overview": {
+    "rows": 95662,
+    "columns": 16,
+    "memory_mb": 60.92,
+    "dtypes": {
+      "TransactionId": "object",
+      "BatchId": "object",
+      "AccountId": "object",
+      "SubscriptionId": "object",
+      "CustomerId": "object",
+      "CurrencyCode": "object",
+      "CountryCode": "int64",
+      "ProviderId": "object",
+      "ProductId": "object",
+      "ProductCategory": "object",
+      "ChannelId": "object",
+      "Amount": "float64",
+      "Value": "int64",
+      "TransactionStartTime": "datetime64[ns, UTC]",
+      "PricingStrategy": "int64",
+      "FraudResult": "int64"
+    },
+    "numeric_columns": [
+      "CountryCode",
+      "Amount",
+      "Value",
+      "PricingStrategy",
+      "FraudResult"
+    ],
+    "categorical_columns": [
+      "TransactionId",
+      "BatchId",
+      "AccountId",
+      "SubscriptionId",
+      "CustomerId",
+      "CurrencyCode",
+      "ProviderId",
+      "ProductId",
+      "ProductCategory",
+      "ChannelId",
+      "TransactionStartTime"
+    ],
+    "duplicate_rows": 0
+  },
+  "risk": {
+    "transaction_count": 95662,
+    "unique_customers": 3742,
+    "proxy_event_rate": 0.002,
+    "proxy_event_count": 193,
+    "total_amount": 642642625.5,
+    "avg_amount": 6717.85,
+    "debit_count": 57473,
+    "credit_count": 38189,
+    "avg_transaction_value": 9900.58,
+    "max_transaction_value": 9880000.0,
+    "customers_with_proxy_event": 54,
+    "customer_proxy_rate": 0.0144,
+    "avg_transactions_per_customer": 25.56,
+    "median_transactions_per_customer": 7.0,
+    "avg_total_value_per_customer": 253102.53
+  },
+  "corr": {
+    "Amount": {
+      "Amount": 1.0,
+      "Value": 0.9897,
+      "CountryCode": NaN,
+      "PricingStrategy": -0.0619,
+      "FraudResult": 0.5574
+    },
+    "Value": {
+      "Amount": 0.9897,
+      "Value": 1.0,
+      "CountryCode": NaN,
+      "PricingStrategy": -0.017,
+      "FraudResult": 0.5667
+    },
+    "CountryCode": {
+      "Amount": NaN,
+      "Value": NaN,
+      "CountryCode": NaN,
+      "PricingStrategy": NaN,
+      "FraudResult": NaN
+    },
+    "PricingStrategy": {
+      "Amount": -0.0619,
+      "Value": -0.017,
+      "CountryCode": NaN,
+      "PricingStrategy": 1.0,
+      "FraudResult": -0.0338
+    },
+    "FraudResult": {
+      "Amount": 0.5574,
+      "Value": 0.5667,
+      "CountryCode": NaN,
+      "PricingStrategy": -0.0338,
+      "FraudResult": 1.0
+    }
+  },
+  "cluster_stats": [
+    {
+      "rfm_cluster": 0,
+      "recency": 62.22,
+      "frequency": 7.67,
+      "monetary": 89073.57,
+      "customers": 1438,
+      "high_risk_rate": 1.0
+    },
+    {
+      "rfm_cluster": 1,
+      "recency": 29.86,
+      "frequency": 4091.0,
+      "monetary": 104900000.0,
+      "customers": 1,
+      "high_risk_rate": 0.0
+    },
+    {
+      "rfm_cluster": 2,
+      "recency": 13.14,
+      "frequency": 34.97,
+      "monetary": 310083.31,
+      "customers": 2303,
+      "high_risk_rate": 0.0
+    }
+  ],
+  "target_balance": {
+    "0": 0.615713522180652,
+    "1": 0.38428647781934794
+  },
+  "iv_summary": [
+    {
+      "feature": "ChannelId",
+      "iv": 1.1471646035323226,
+      "unique": 4,
+      "error": null
+    },
+    {
+      "feature": "ProductCategory",
+      "iv": 0.9539399618034603,
+      "unique": 9,
+      "error": null
+    },
+    {
+      "feature": "PricingStrategy",
+      "iv": 0.826274228958583,
+      "unique": 4,
+      "error": null
+    }
+  ],
+  "product_fraud": [
+    {
+      "ProductCategory": "transport",
+      "mean": 0.08,
+      "count": 25
+    },
+    {
+      "ProductCategory": "utility_bill",
+      "mean": 0.00625,
+      "count": 1920
+    },
+    {
+      "ProductCategory": "financial_services",
+      "mean": 0.003545864992842198,
+      "count": 45405
+    },
+    {
+      "ProductCategory": "airtime",
+      "mean": 0.0003997601439136518,
+      "count": 45027
+    },
+    {
+      "ProductCategory": "data_bundles",
+      "mean": 0.0,
+      "count": 1613
+    },
+    {
+      "ProductCategory": "other",
+      "mean": 0.0,
+      "count": 2
+    },
+    {
+      "ProductCategory": "movies",
+      "mean": 0.0,
+      "count": 175
+    },
+    {
+      "ProductCategory": "ticket",
+      "mean": 0.0,
+      "count": 216
+    },
+    {
+      "ProductCategory": "tv",
+      "mean": 0.0,
+      "count": 1279
+    }
+  ],
+  "channel_fraud": [
+    {
+      "ChannelId": "ChannelId_1",
+      "mean": 0.007434944237918215,
+      "count": 538
+    },
+    {
+      "ChannelId": "ChannelId_3",
+      "mean": 0.0032317555106700624,
+      "count": 56935
+    },
+    {
+      "ChannelId": "ChannelId_2",
+      "mean": 0.00013462211572117067,
+      "count": 37141
+    },
+    {
+      "ChannelId": "ChannelId_5",
+      "mean": 0.0,
+      "count": 1048
+    }
+  ],
+  "amount_describe": {
+    "count": 95662.0,
+    "mean": 6717.846433275491,
+    "std": 123306.79716433848,
+    "min": -1000000.0,
+    "25%": -50.0,
+    "50%": 1000.0,
+    "75%": 2800.0,
+    "max": 9880000.0
+  },
+  "value_describe": {
+    "count": 95662.0,
+    "mean": 9900.583941376932,
+    "std": 123122.08777619714,
+    "min": 2.0,
+    "25%": 275.0,
+    "50%": 1000.0,
+    "75%": 5000.0,
+    "max": 9880000.0
+  },
+  "time_range": {
+    "min": "2018-11-15 02:18:49+00:00",
+    "max": "2019-02-13 10:01:28+00:00"
+  },
+  "txn_per_customer": {
+    "count": 3742.0,
+    "mean": 25.564404061998932,
+    "std": 96.92960209482813,
+    "min": 1.0,
+    "25%": 2.0,
+    "50%": 7.0,
+    "75%": 20.0,
+    "max": 4091.0
+  },
+  "numeric_summary_rows": {
+    "count": {
+      "CountryCode": 95662.0,
+      "Amount": 95662.0,
+      "Value": 95662.0,
+      "PricingStrategy": 95662.0,
+      "FraudResult": 95662.0
+    },
+    "mean": {
+      "CountryCode": 256.0,
+      "Amount": 6717.846433275491,
+      "Value": 9900.583941376932,
+      "PricingStrategy": 2.25597415901821,
+      "FraudResult": 0.00201752001839811
+    },
+    "std": {
+      "CountryCode": 0.0,
+      "Amount": 123306.79716433848,
+      "Value": 123122.08777619714,
+      "PricingStrategy": 0.732924109485572,
+      "FraudResult": 0.04487171357472356
+    },
+    "min": {
+      "CountryCode": 256.0,
+      "Amount": -1000000.0,
+      "Value": 2.0,
+      "PricingStrategy": 0.0,
+      "FraudResult": 0.0
+    },
+    "5%": {
+      "CountryCode": 256.0,
+      "Amount": -5000.0,
+      "Value": 25.0,
+      "PricingStrategy": 2.0,
+      "FraudResult": 0.0
+    },
+    "25%": {
+      "CountryCode": 256.0,
+      "Amount": -50.0,
+      "Value": 275.0,
+      "PricingStrategy": 2.0,
+      "FraudResult": 0.0
+    },
+    "50%": {
+      "CountryCode": 256.0,
+      "Amount": 1000.0,
+      "Value": 1000.0,
+      "PricingStrategy": 2.0,
+      "FraudResult": 0.0
+    },
+    "75%": {
+      "CountryCode": 256.0,
+      "Amount": 2800.0,
+      "Value": 5000.0,
+      "PricingStrategy": 2.0,
+      "FraudResult": 0.0
+    },
+    "95%": {
+      "CountryCode": 256.0,
+      "Amount": 14500.0,
+      "Value": 25000.0,
+      "PricingStrategy": 4.0,
+      "FraudResult": 0.0
+    },
+    "max": {
+      "CountryCode": 256.0,
+      "Amount": 9880000.0,
+      "Value": 9880000.0,
+      "PricingStrategy": 4.0,
+      "FraudResult": 1.0
+    },
+    "missing_count": {
+      "CountryCode": 0,
+      "Amount": 0,
+      "Value": 0,
+      "PricingStrategy": 0,
+      "FraudResult": 0
+    },
+    "missing_pct": {
+      "CountryCode": 0.0,
+      "Amount": 0.0,
+      "Value": 0.0,
+      "PricingStrategy": 0.0,
+      "FraudResult": 0.0
+    },
+    "zeros": {
+      "CountryCode": 0,
+      "Amount": 0,
+      "Value": 0,
+      "PricingStrategy": 385,
+      "FraudResult": 95469
+    },
+    "unique": {
+      "CountryCode": 1,
+      "Amount": 1676,
+      "Value": 1517,
+      "PricingStrategy": 4,
+      "FraudResult": 2
+    }
+  },
+  "customers": 3742,
+  "high_risk_count": 1438
+}

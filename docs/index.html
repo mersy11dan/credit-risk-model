@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bati Bank Credit Risk Model — Mihret Daniel</title>
+  <meta name="description" content="Portfolio case study: end-to-end credit risk probability model for Bati Bank using alternative transaction data, RFM proxy targets, MLflow, FastAPI, and Docker." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" data-reveal>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Mihret Daniel</span>
+    </div>
+    <nav class="nav" aria-label="Primary">
+      <a href="#problem">Problem</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#results">Results</a>
+      <a href="#mlops">MLOps</a>
+      <a href="#report">Report</a>
+    </nav>
+    <a class="btn btn-ghost" href="https://github.com/mersy11dan/credit-risk-model" target="_blank" rel="noopener">GitHub</a>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div class="hero-copy" data-reveal>
+          <p class="eyebrow">10 Academy · Week 4 · Portfolio Case Study</p>
+          <h1 id="hero-title">Credit risk scoring<br />for thin-file customers.</h1>
+          <p class="lede">
+            An end-to-end probability model for Bati Bank built on alternative Xente transaction data —
+            with RFM proxy targets, regulated-model thinking, and production deployment.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://github.com/mersy11dan/credit-risk-model" target="_blank" rel="noopener">View repository</a>
+            <a class="btn btn-secondary" href="final-report.html">Read final report</a>
+          </div>
+        </div>
+
+        <aside class="hero-panel" data-reveal aria-label="Project snapshot">
+          <div class="ledger-line" aria-hidden="true"></div>
+          <p class="panel-label">Proxy risk model · hold-out test</p>
+          <p class="panel-metric" id="roc-metric">0.99995</p>
+          <p class="panel-caption">Best ROC-AUC · Gradient Boosting</p>
+          <dl class="panel-stats">
+            <div>
+              <dt>Transactions</dt>
+              <dd>95,662</dd>
+            </div>
+            <div>
+              <dt>Customers</dt>
+              <dd>3,742</dd>
+            </div>
+            <div>
+              <dt>Models compared</dt>
+              <dd>4</dd>
+            </div>
+            <div>
+              <dt>Unit tests</dt>
+              <dd>42</dd>
+            </div>
+          </dl>
+          <p class="panel-note">
+            Metrics measure <strong>proxy engagement risk</strong>, not verified default.
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="problem" aria-labelledby="problem-title">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Business problem</p>
+        <h2 id="problem-title">How do you score credit when default labels don’t exist?</h2>
+        <p class="section-lede">
+          Bati Bank needed a governed way to rank applicants using digital transaction behavior —
+          while staying honest about Basel-style expectations for transparency and documentation.
+        </p>
+      </div>
+
+      <div class="split" data-reveal>
+        <article>
+          <h3>The constraint</h3>
+          <p>
+            The Xente extract has rich transaction history but no long-horizon default outcome.
+            Without a supervised target, the bank cannot train a ranking model for credit decisioning.
+          </p>
+        </article>
+        <article>
+          <h3>The approach</h3>
+          <p>
+            Build customer-level features, create an RFM + K-Means proxy target
+            (<code>is_high_risk</code>), benchmark interpretable and complex models, then ship scoring
+            via FastAPI and Docker.
+          </p>
+        </article>
+        <article>
+          <h3>Basel II lens</h3>
+          <p>
+            Prefer documented assumptions, WoE/IV screening, and a logistic baseline for audit dialogue —
+            while using gradient boosting as the performance challenger for ranking.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section section-muted" id="pipeline" aria-labelledby="pipeline-title">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">System design</p>
+        <h2 id="pipeline-title">From raw ledger to live score.</h2>
+      </div>
+      <figure class="figure" data-reveal>
+        <img src="assets/20_pipeline_architecture.png" alt="End-to-end Bati Bank credit risk pipeline diagram" />
+        <figcaption>Raw data → EDA → features → RFM proxy → training → MLflow → FastAPI → Docker → CI</figcaption>
+      </figure>
+
+      <ol class="flow" data-reveal>
+        <li><span>Ingest</span> Xente transactions (95k rows)</li>
+        <li><span>Engineer</span> customer RFM + time + category modes</li>
+        <li><span>Label</span> least-engaged cluster as high risk</li>
+        <li><span>Train</span> four models with RandomizedSearchCV</li>
+        <li><span>Serve</span> /predict with risk probability</li>
+      </ol>
+    </section>
+
+    <section class="section" id="insights" aria-labelledby="insights-title">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Exploratory findings</p>
+        <h2 id="insights-title">What the data actually showed.</h2>
+      </div>
+
+      <div class="insight-grid" data-reveal>
+        <article>
+          <p class="data-kicker">Fraud rate</p>
+          <p class="data-value">0.20%</p>
+          <p>Transaction-level fraud is rare — ranking metrics matter more than accuracy alone.</p>
+        </article>
+        <article>
+          <p class="data-kicker">High-risk customers</p>
+          <p class="data-value">38.4%</p>
+          <p>RFM cluster 0 (least engaged): 1,438 customers with ~62-day average recency.</p>
+        </article>
+        <article>
+          <p class="data-kicker">Amount ↔ Value</p>
+          <p class="data-value">r = 0.99</p>
+          <p>Near-redundant monetary signals — avoid double-counting in linear scorecards.</p>
+        </article>
+      </div>
+
+      <div class="gallery" data-reveal>
+        <figure>
+          <img src="assets/04_correlation_heatmap.png" alt="Correlation heatmap of numerical features" />
+          <figcaption>Correlation structure</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/10_rfm_recency_frequency.png" alt="RFM scatter of recency versus frequency" />
+          <figcaption>RFM segments</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/13_target_balance_pie.png" alt="Proxy target class balance pie chart" />
+          <figcaption>Proxy target balance</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section section-muted" id="results" aria-labelledby="results-title">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Model comparison</p>
+        <h2 id="results-title">Four models. One selection rule: ROC-AUC.</h2>
+        <p class="section-lede">
+          Stratified 80/20 split, fixed random_state=42, RandomizedSearchCV.
+          Winner: Gradient Boosting — with Logistic Regression kept as the interpretable reference.
+        </p>
+      </div>
+
+      <div class="table-wrap" data-reveal>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Accuracy</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>F1</th>
+              <th>ROC-AUC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="is-best">
+              <td>Gradient Boosting</td>
+              <td>0.9947</td>
+              <td>0.9931</td>
+              <td>0.9931</td>
+              <td>0.9931</td>
+              <td>0.99995</td>
+            </tr>
+            <tr>
+              <td>Logistic Regression</td>
+              <td>0.9907</td>
+              <td>1.0000</td>
+              <td>0.9757</td>
+              <td>0.9877</td>
+              <td>0.9999</td>
+            </tr>
+            <tr>
+              <td>Random Forest</td>
+              <td>0.9973</td>
+              <td>0.9965</td>
+              <td>0.9965</td>
+              <td>0.9965</td>
+              <td>0.9997</td>
+            </tr>
+            <tr>
+              <td>Decision Tree</td>
+              <td>0.9947</td>
+              <td>0.9965</td>
+              <td>0.9896</td>
+              <td>0.9930</td>
+              <td>0.9963</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="gallery gallery-2" data-reveal>
+        <figure>
+          <img src="assets/16_roc_auc_comparison.png" alt="Bar chart comparing ROC-AUC across models" />
+          <figcaption>ROC-AUC by model</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/17_feature_importance.png" alt="Gradient boosting feature importance chart" />
+          <figcaption>Top drivers: txn_month, txn_year</figcaption>
+        </figure>
+      </div>
+
+      <p class="honesty" data-reveal>
+        High scores partly reflect overlap between RFM-derived labels and activity/time features.
+        Treat them as an upper bound on <em>proxy</em> separation until true defaults are available.
+      </p>
+    </section>
+
+    <section class="section" id="mlops" aria-labelledby="mlops-title">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Production surface</p>
+        <h2 id="mlops-title">Built to ship, not just notebook.</h2>
+      </div>
+
+      <ul class="stack-list" data-reveal>
+        <li>
+          <strong>FastAPI</strong>
+          <span><code>/health</code> and <code>/predict</code> return risk probability + Low/Medium/High band</span>
+        </li>
+        <li>
+          <strong>MLflow</strong>
+          <span>Parameters, metrics, and model artifacts logged per experiment run</span>
+        </li>
+        <li>
+          <strong>Docker</strong>
+          <span>Compose service on port 8000 with model volume mounts and health checks</span>
+        </li>
+        <li>
+          <strong>CI</strong>
+          <span>GitHub Actions: Ruff lint/format + pytest on every push to main</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section section-cta" id="report" aria-labelledby="report-title">
+      <div data-reveal>
+        <p class="eyebrow">Artifacts</p>
+        <h2 id="report-title">Explore the full case study.</h2>
+        <p class="section-lede">
+          Deep-dive write-up, reproducible code, and deployment config — ready for reviewers and hiring managers.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="final-report.html">Open final report</a>
+          <a class="btn btn-secondary" href="https://github.com/mersy11dan/credit-risk-model" target="_blank" rel="noopener">Browse source on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Designed &amp; built by <strong>Mihret Daniel</strong> for the 10 Academy Bati Bank challenge.</p>
+    <p class="footer-meta">
+      <a href="https://github.com/mersy11dan/credit-risk-model">mersy11dan/credit-risk-model</a>
+      · Portfolio case study · 2026
+    </p>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

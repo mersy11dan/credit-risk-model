@@ -1,0 +1,36 @@
+# Git and IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Python caches and virtual environments
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+.venv
+venv
+env
+
+# Notebooks and local data (mount at runtime if needed)
+notebooks
+data/raw
+data/processed
+*.csv
+
+# MLflow and models (mounted as volumes in compose)
+mlruns
+models
+*.pkl
+
+# Tests and docs (not needed in runtime image)
+tests
+*.md
+!README.md
+
+# Docker
+docker-compose.override.yml
